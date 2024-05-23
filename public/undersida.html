@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Undersida</title>
+</head>
+<body>
+    <h1>Välkommen till din sida!</h1>
+    <p id="welcomeMessage"></p>
+    
+
+    <h3>Alla användare på sidan:</h3>
+    <ul id="userList"></ul>
+    <button onclick="logoutUser()">Logga ut</button>
+
+    <script>
+        // Funktion för att hämta JWT-token från localStorage
+        function getToken() {
+            return localStorage.getItem('token');
+        }
+
+        // Funktion för att kontrollera om användaren är inloggad
+        function checkLoggedIn() {
+            const token = getToken();
+            if (!token) {
+                // Om användaren inte är inloggad, omdirigera till inloggningssidan
+                window.location.href = "index.html";
+            } else {
+                // Hämta användarnamnet från JWT-token och visa välkomstmeddelande
+                const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+                const username = tokenPayload.username;
+                document.getElementById("welcomeMessage").textContent = "Hej " + username + ", välkommen till din sida!";
+
+                // Hämta alla användarnamn från servern och visa dem på sidan
+                fetch('/api/usernames', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Kunde inte hämta användarnamn.');
+                    }
+                    return response.json();
+                })
+                .then(usernames => {
+                    const userList = document.getElementById("userList");
+                    usernames.forEach(username => {
+                        const listItem = document.createElement("li");
+                        listItem.textContent = username;
+                        userList.appendChild(listItem);
+                    });
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+            }
+        }
+
+        // Funktion för att logga ut användaren
+        function logoutUser() {
+            // Ta bort JWT-token från localStorage
+            localStorage.removeItem('token');
+            // Omdirigera användaren till inloggningssidan
+            window.location.href = "index.html";
+        }
+
+        // Kör funktionen för att kontrollera om användaren är inloggad när sidan laddas
+        window.onload = checkLoggedIn;
+    </script>
+</body>
+</html>
